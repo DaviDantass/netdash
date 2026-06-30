@@ -1,3 +1,5 @@
-fn main() {
-    println!("Hello, world!");
-}
+mod app;
+mod config;
+mod speedtest;
+mod ui;
+

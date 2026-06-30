@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ratatui = "0.29"
-crossterm = "0.29"
-tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.12", features = ["stream", "rustls-tls"] }
-futures-util = "0.3"
 anyhow = "1"
+crossterm = "0.29"
+futures-util = "0.3"
+ratatui = "0.29"
+reqwest = { version = "0.12", features = ["stream", "rustls-tls"] }
+tokio = { version = "1", features = ["full"] }
