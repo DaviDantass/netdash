@@ -19,7 +19,7 @@ use tokio::sync::watch;
 
 use crate::{
     app::AppState,
-    config::{PARALLEL_STREAMS, WARMUP_DURATION},
+    config::{PARALLEL_STREAMS, TEST_DURATION, WARMUP_DURATION},
 };
 
 pub async fn run_tui(rx: watch::Receiver<AppState>) -> Result<()> {
@@ -65,11 +65,15 @@ async fn run_app_loop(
                 ])
                 .split(area);
 
+            let total_secs = TEST_DURATION.as_secs_f64();
+            let warmup_secs = WARMUP_DURATION.as_secs_f64();
+            let measured_secs = (total_secs - warmup_secs).max(0.0);
+
             let status_text = if state.error.is_some() {
                 "Erro"
             } else if state.done {
                 "Finalizado"
-            } else if state.elapsed_secs < WARMUP_DURATION.as_secs_f64() {
+            } else if state.elapsed_secs < warmup_secs {
                 "Aquecendo..."
             } else {
                 "Medindo download..."
@@ -104,7 +108,11 @@ async fn run_app_loop(
                     ),
                     Span::raw(" | "),
                     Span::styled(
-                        format!("{:.1}s / 8.0s", state.elapsed_secs.min(8.0)),
+                        format!(
+                            "{:.1}s / {:.1}s",
+                            state.elapsed_secs.min(total_secs),
+                            total_secs
+                        ),
                         Style::default().fg(Color::Gray),
                     ),
                 ]),
@@ -194,8 +202,11 @@ async fn run_app_loop(
             let footer_text = if let Some(error) = &state.error {
                 format!("Erro: {error} | pressione 'q' para sair")
             } else {
-                "Pressione 'q' para sair | 0.8s aquecimento + 7.2s medição real | sem salvar arquivos"
-                    .to_string()
+                format!(
+                    "Pressione 'q' para sair | {:.1}s aquecimento + {:.1}s medição real | modo realista | sem salvar arquivos",
+                    warmup_secs,
+                    measured_secs
+                )
             };
 
             let footer = Paragraph::new(footer_text)

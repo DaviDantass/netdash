@@ -3,7 +3,7 @@ use std::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc,
     },
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use anyhow::{anyhow, Result};
@@ -49,13 +49,7 @@ pub async fn run_download_test(tx: watch::Sender<AppState>) -> Result<()> {
                 let base_url = TEST_URLS[url_index];
                 url_index = (url_index + 1) % TEST_URLS.len();
 
-                let separator = if base_url.contains('?') { "&" } else { "?" };
-                let url = format!(
-                    "{}{}cache_bust={}",
-                    base_url,
-                    separator,
-                    timestamp_nanos()
-                );
+                let url = build_test_url(base_url);
 
                 let response = match client.get(&url).send().await {
                     Ok(response) => response,
@@ -102,7 +96,7 @@ pub async fn run_download_test(tx: watch::Sender<AppState>) -> Result<()> {
     let mut history: Vec<u64> = vec![0; 50];
     let mut last_bytes = 0u64;
     let mut last_tick = Instant::now();
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(200));
+    let mut interval = tokio::time::interval(Duration::from_millis(200));
 
     loop {
         interval.tick().await;
@@ -151,7 +145,7 @@ pub async fn run_download_test(tx: watch::Sender<AppState>) -> Result<()> {
         });
     }
 
-    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
 
     let final_bytes = total_bytes.load(Ordering::Relaxed);
     let final_measured_secs = TEST_DURATION
@@ -187,6 +181,21 @@ pub async fn run_download_test(tx: watch::Sender<AppState>) -> Result<()> {
     });
 
     Ok(())
+}
+
+fn build_test_url(base_url: &str) -> String {
+    if base_url.contains("speed.cloudflare.com") {
+        base_url.to_string()
+    } else {
+        let separator = if base_url.contains('?') { "&" } else { "?" };
+
+        format!(
+            "{}{}cache_bust={}",
+            base_url,
+            separator,
+            timestamp_nanos()
+        )
+    }
 }
 
 fn timestamp_nanos() -> u128 {
